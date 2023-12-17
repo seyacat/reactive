@@ -154,7 +154,9 @@ function Reactive(ob) {
         if (prop == "keys") {
           return target.keys.bind(receiver);
         }
-
+        if (typeof target.data[prop] === "function") {
+          return target.data[prop].bind(target.data);
+        }
         return target.data[prop];
       },
       set: (target, prop, value, receiver) => {
