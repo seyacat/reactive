@@ -34,32 +34,52 @@ function Reactive(ob) {
         const { prop, path, value, oldValue } = data;
         const localpath = [...path.slice(this._path.length, path.length), prop];
         const localpathString = localpath.join(".");
+        let valueThoughtLocalPath = null;
+        let pathValues = [];
+
+        //TEST IF MUTTED
         if (this._target._mutted.has(localpathString)) return;
+        //START MUTTED
         this._target._mutted.add(localpathString);
 
-        //WIDE SUBSCRIPTION
+        //TEST SUBS
+        if (
+          this._target.subscriptions[localpath[0]]?.length ||
+          this._target.subscriptions["_all"]?.length
+        ) {
+          //GET VALUE THOUGT PATH
+          valueThoughtLocalPath = this;
+          for (const k of localpath) {
+            valueThoughtLocalPath = valueThoughtLocalPath[k];
+            pathValues.push(valueThoughtLocalPath);
+          }
 
-        for (const sub of [
-          ...(this._target.subscriptions[localpath[0]] ?? []),
-          ...(this._target.subscriptions["_all"] ?? []),
-        ]) {
-          sub({
-            base: this,
-            prop,
-            path: localpath,
-            value,
-            oldValue,
-            prefix: this._prefix,
-          });
+          //WIDE SUBSCRIPTION
+
+          for (const sub of [
+            ...(this._target.subscriptions[localpath[0]] ?? []),
+            ...(this._target.subscriptions["_all"] ?? []),
+          ]) {
+            sub({
+              base: this,
+              prop,
+              path: localpath,
+              value: value ?? valueThoughtLocalPath,
+              oldValue,
+              pathValues,
+              prefix: this._prefix,
+            });
+          }
         }
-
+        //END MUTTED
         this._target._mutted.delete(localpathString);
 
         if (this._target._parent?.receiver) {
           this._target._parent.receiver.triggerSubs({
             prop,
             path,
-            value,
+            value: value ?? valueThoughtLocalPath,
+            pathValues,
             oldValue,
           });
         }
@@ -155,6 +175,7 @@ function Reactive(ob) {
           return target.keys.bind(receiver);
         }
         if (typeof target.data[prop] === "function") {
+          target.triggerSubs.bind(receiver)({ prop, path: receiver._path });
           return target.data[prop].bind(target.data);
         }
         return target.data[prop];
