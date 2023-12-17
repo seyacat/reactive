@@ -1,4 +1,4 @@
-module.exports = function Reactive(ob) {
+function Reactive(ob) {
   const newProxy = new Proxy(
     {
       _prefix: "-r",
@@ -206,4 +206,4 @@ module.exports = function Reactive(ob) {
     }
   }
   return newProxy;
-};
+}
