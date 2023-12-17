@@ -120,17 +120,20 @@ function Reactive(ob) {
         if (prop === "_target") {
           return target;
         }
-        if (prop === "_data") {
-          const ret = Object.fromEntries(
-            Object.entries(currentTarget.data).map(([key, val]) => {
-              if (val?.isReactive) {
-                return [key, val._data];
-              } else {
-                return [key, val];
-              }
-            })
-          );
-          return ret;
+        if (prop === "_data" || prop === "_") {
+          if (currentTarget.data.constructor.name === "Object") {
+            const ret = Object.fromEntries(
+              Object.entries(currentTarget.data).map(([key, val]) => {
+                if (val?.isReactive) {
+                  return [key, val._data];
+                } else {
+                  return [key, val];
+                }
+              })
+            );
+            return ret;
+          }
+          return currentTarget.data;
         }
         if (prop == "isReactive") {
           return true;
@@ -160,6 +163,7 @@ function Reactive(ob) {
           return true;
         }
 
+        //SET REACTIVE PARENTSHIP
         if (value?.isReactive) {
           value._parent = { prop: prop, receiver };
         }
@@ -176,7 +180,8 @@ function Reactive(ob) {
         if (
           target.data[prop] &&
           target.data[prop].isReactive &&
-          value.isReactive
+          value.isReactive &&
+          value?._target?.data.constructor.name !== "Array"
         ) {
           //ON THIS CASE NO SELF CHANGE
           for ([k, v] of value) {
@@ -206,4 +211,10 @@ function Reactive(ob) {
     }
   }
   return newProxy;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    Reactive,
+  };
 }
