@@ -167,6 +167,11 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           const ret = [];
           let rv = receiver;
           while (rv?._parent) {
+            //RECALCULATE POSITION IN ARRAY
+            if (rv._parent.receiver._target.data.constructor.name === "Array") {
+              rv._parent.prop =
+                rv._parent.receiver._target.data.indexOf(receiver);
+            }
             ret.unshift(rv._parent.prop);
             rv = rv._parent.receiver;
           }
@@ -191,6 +196,17 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             );
             return ret;
           }
+          if (currentTarget.data.constructor.name === "Array") {
+            const ret = currentTarget.data.map((val) => {
+              if (val?.isReactive) {
+                return val._data;
+              } else {
+                return val;
+              }
+            });
+            return ret;
+          }
+
           return currentTarget.data;
         }
         if (prop == "isReactive") {
