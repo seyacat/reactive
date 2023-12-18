@@ -152,6 +152,24 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
       keys: function () {
         return Object.keys(this._data);
       },
+      proxyFunction: function () {
+        //EXECUTE FUNCTION
+        const ret = this.target.data[this.prop].bind(this.target.data)(
+          ...arguments
+        );
+        //Rebuild parent relationship
+        for ([key, value] of Object.entries(this.target.data)) {
+          if (value?.isReactive) {
+            value._target._parent = { prop: key, receiver: newProxy };
+          }
+        }
+        //POST TRIGGER
+        this.target.triggerSubs.bind(this.receiver)({
+          prop: this.prop,
+          path: this.receiver._path,
+        });
+        return ret;
+      },
     },
     {
       get: (target, prop, receiver) => {
@@ -167,11 +185,6 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           const ret = [];
           let rv = receiver;
           while (rv?._parent) {
-            //RECALCULATE POSITION IN ARRAY
-            if (rv._parent.receiver._target.data.constructor.name === "Array") {
-              rv._parent.prop =
-                rv._parent.receiver._target.data.indexOf(receiver);
-            }
             ret.unshift(rv._parent.prop);
             rv = rv._parent.receiver;
           }
@@ -232,8 +245,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           return target.keys.bind(receiver);
         }
         if (typeof target.data[prop] === "function") {
-          target.triggerSubs.bind(receiver)({ prop, path: receiver._path });
-          return target.data[prop].bind(target.data);
+          return target.proxyFunction.bind({ target, prop, receiver });
         }
         return target.data[prop];
       },
