@@ -106,7 +106,9 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         const localpath = [...path.slice(this._path.length, path.length)];
         const localpathString = localpath.join(".");
         const target = this._target;
-        if (!target._delayedPayloads[localpathString]) {
+        if (target._delayedPayloads[localpathString]) {
+          target._delayedPayloads[localpathString].value = data.value;
+        } else {
           target._delayedPayloads[localpathString] = data;
           setTimeout(
             function () {
@@ -118,8 +120,6 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             }.bind(this),
             target._subscriptionDelay
           );
-        } else {
-          target._delayedPayloads[localpathString].value = data.value;
         }
       },
       triggerChange: function (prop) {
