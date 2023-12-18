@@ -1,4 +1,4 @@
-function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 10 }) {
+function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
   const newProxy = new Proxy(
     {
       _prefix: options.prefix,
@@ -68,7 +68,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 10 }) {
               base: this,
               prop,
               path: localpath,
-              value: value,
+              value: value ?? valueThoughtLocalPath,
               oldValue,
               pathValues,
               prefix: this._prefix,
@@ -86,7 +86,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 10 }) {
             )({
               prop,
               path,
-              value: value,
+              value: value ?? valueThoughtLocalPath,
               pathValues,
               oldValue,
             });
