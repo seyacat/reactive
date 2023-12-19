@@ -5,8 +5,9 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
       _subscriptionDelay: options.subscriptionDelay,
       _mutted: new Set(),
       _delayedPayloads: {},
+      _proxy: null,
       data: ob ?? {},
-      subscriptions: {},
+      _subscriptions: {},
 
       subscribe: function (
         propInput,
@@ -22,10 +23,10 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           propArr = Array.from(new Set(propInput));
         }
         for (const prop of propArr) {
-          if (this._target.subscriptions[prop]) {
-            this._target.subscriptions[prop].push(func);
+          if (this._target._subscriptions[prop]) {
+            this._target._subscriptions[prop].push(func);
           } else {
-            this._target.subscriptions[prop] = [func];
+            this._target._subscriptions[prop] = [func];
           }
           if (options.triggerChange) {
             this.triggerChange(prop);
@@ -47,8 +48,8 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
 
         //TEST SUBS
         if (
-          target.subscriptions[localpath[0]]?.length ||
-          target.subscriptions["_all"]?.length
+          target._subscriptions[localpath[0]]?.length ||
+          target._subscriptions["_all"]?.length
         ) {
           //GET VALUE THOUGT PATH
           valueThoughtLocalPath = this;
@@ -61,8 +62,8 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           //WIDE SUBSCRIPTION
 
           for (const sub of [
-            ...(target.subscriptions[localpath[0]] ?? []),
-            ...(target.subscriptions["_all"] ?? []),
+            ...(target._subscriptions[localpath[0]] ?? []),
+            ...(target._subscriptions["_all"] ?? []),
           ]) {
             sub({
               base: this,
@@ -171,12 +172,14 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         return ret;
       },
       orphan: function () {
-        const parentTarget = this.target._parent.receiver._target;
+        if (!this.target._parent) return;
+        const parentReceiver = this.target._parent.receiver;
+        const parentTarget = parentReceiver._target;
         const prop = this.target._parent.prop;
         delete this.target._parent;
-        if (parentTarget.data.constructor.name == "Object") {
-          delete parentTarget.data[prop];
-        }
+
+        delete parentReceiver[prop];
+
         return this.receiver;
       },
     },
@@ -252,9 +255,12 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         return target.data[prop];
       },
       set: (target, prop, value, receiver) => {
-        if (prop === "_parent" || prop === "_prefix") {
-          target[prop] = value;
-          return true;
+        switch (prop) {
+          case "_parent":
+          case "_prefix":
+          case "_proxy":
+            target[prop] = value;
+            return true;
         }
 
         //SET REACTIVE PARENTSHIP
@@ -296,8 +302,20 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
 
         return true;
       },
+      deleteProperty(target, prop) {
+        if (prop in target.data) {
+          delete target.data[prop];
+          //POST TRIGGER
+          target.triggerSubs.bind(target._proxy)({
+            prop: prop,
+            path: target._proxy._path,
+          });
+        }
+      },
     }
   );
+  //GIVE ACCESS TO PROXY FROM TARGET
+  newProxy._target._proxy = newProxy;
   //CHAIN REACTIVES
   for ([key, value] of Object.entries(newProxy._target.data)) {
     if (value?.isReactive) {
