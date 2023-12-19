@@ -3,7 +3,7 @@
 # Examples
 
 ## Simple example
-
+```js
   const games = Reactive();
   //SUBSCRIBE to test property changes
   games.subscribe("test", (data) => {
@@ -15,9 +15,9 @@
     assert.equal(oldValue, undefined);
   });
   games.test = 1;
-
+```
 ## Chain example
-
+```js
   const games = Reactive(
     {
       level1: Reactive([Reactive({ level3: "OK" }, { prefix: "level2" })], {
@@ -37,3 +37,4 @@
   });
   assert.equal(games.level1[0].level3, "OK");
   games.level1[0].level3 = "KO";
+```
