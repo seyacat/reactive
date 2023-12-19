@@ -6,8 +6,9 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
       _mutted: new Set(),
       _delayedPayloads: {},
       _proxy: null,
-      data: ob ?? {},
       _subscriptions: {},
+      _ignoredFunctions: ["valueOf", "toString", "join", "keys"],
+      data: ob ?? {},
 
       subscribe: function (
         propInput,
@@ -150,9 +151,9 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           }
         }
       },
-      keys: function () {
+      /*keys: function () {
         return Object.keys(this._data);
-      },
+      },*/
       proxyFunction: function () {
         //EXECUTE FUNCTION
         const ret = this.target.data[this.prop].bind(this.target.data)(
@@ -161,7 +162,13 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         //Rebuild parent relationship
         for ([key, value] of Object.entries(this.target.data)) {
           if (value?.isReactive) {
-            value._target._parent = { prop: key, receiver: newProxy };
+            value._target._parent = {
+              prop:
+                this.target.data.constructor.name === "Array"
+                  ? parseInt(key)
+                  : key,
+              receiver: newProxy,
+            };
           }
         }
         //POST TRIGGER
@@ -249,7 +256,10 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           case "orphan":
             return target.orphan.bind({ receiver, target });
         }
-        if (typeof target.data[prop] === "function") {
+        if (
+          typeof target.data[prop] === "function" &&
+          !target._ignoredFunctions.includes(prop)
+        ) {
           return target.proxyFunction.bind({ target, prop, receiver });
         }
         return target.data[prop];
@@ -311,15 +321,23 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             path: target._proxy._path,
           });
         }
+        return true;
       },
     }
   );
   //GIVE ACCESS TO PROXY FROM TARGET
-  newProxy._target._proxy = newProxy;
+  const newProxyTarget = newProxy._target;
+  newProxyTarget._proxy = newProxy;
   //CHAIN REACTIVES
-  for ([key, value] of Object.entries(newProxy._target.data)) {
+  for ([key, value] of Object.entries(newProxyTarget.data)) {
     if (value?.isReactive) {
-      value._target._parent = { prop: key, receiver: newProxy };
+      value._target._parent = {
+        prop:
+          newProxyTarget.data.constructor.name === "Array"
+            ? parseInt(key)
+            : key,
+        receiver: newProxy,
+      };
     }
   }
   return newProxy;
