@@ -170,6 +170,15 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         });
         return ret;
       },
+      orphan: function () {
+        const parentTarget = this.target._parent.receiver._target;
+        const prop = this.target._parent.prop;
+        delete this.target._parent;
+        if (parentTarget.data.constructor.name == "Object") {
+          delete parentTarget.data[prop];
+        }
+        return this.receiver;
+      },
     },
     {
       get: (target, prop, receiver) => {
@@ -181,68 +190,61 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         if (target.isReactive) {
           currentTarget = target._data;
         }
-        if (prop === "_path") {
-          const ret = [];
-          let rv = receiver;
-          while (rv?._parent) {
-            ret.unshift(rv._parent.prop);
-            rv = rv._parent.receiver;
-          }
-          return ret;
-        }
-        if (prop === "_parent" || prop === "_prefix") {
-          return target[prop];
-        }
-        if (prop === "_target") {
-          return target;
-        }
-        if (prop === "_data" || prop === "_") {
-          if (currentTarget.data.constructor.name === "Object") {
-            const ret = Object.fromEntries(
-              Object.entries(currentTarget.data).map(([key, val]) => {
+        switch (prop) {
+          case "_path":
+            const ret = [];
+            let rv = receiver;
+            while (rv?._parent) {
+              ret.unshift(rv._parent.prop);
+              rv = rv._parent.receiver;
+            }
+            return ret;
+          case "_parent":
+          case "_prefix":
+            return target[prop];
+          case "_target":
+            return target;
+          case "_data":
+          case "_":
+            if (currentTarget.data.constructor.name === "Object") {
+              const ret = Object.fromEntries(
+                Object.entries(currentTarget.data).map(([key, val]) => {
+                  if (val?.isReactive) {
+                    return [key, val._data];
+                  } else {
+                    return [key, val];
+                  }
+                })
+              );
+              return ret;
+            }
+            if (currentTarget.data.constructor.name === "Array") {
+              const ret = currentTarget.data.map((val) => {
                 if (val?.isReactive) {
-                  return [key, val._data];
+                  return val._data;
                 } else {
-                  return [key, val];
+                  return val;
                 }
-              })
-            );
-            return ret;
-          }
-          if (currentTarget.data.constructor.name === "Array") {
-            const ret = currentTarget.data.map((val) => {
-              if (val?.isReactive) {
-                return val._data;
-              } else {
-                return val;
-              }
-            });
-            return ret;
-          }
-
-          return currentTarget.data;
-        }
-        if (prop == "isReactive") {
-          return true;
-        }
-
-        if (prop == "subscribe") {
-          return target.subscribe.bind(receiver);
-        }
-        if (prop == "triggerSubs") {
-          return target.triggerSubs.bind(receiver);
-        }
-        if (prop == "triggerDelayedSubs") {
-          return target.triggerDelayedSubs.bind(receiver);
-        }
-        if (prop == "triggerChange") {
-          return target.triggerChange.bind(receiver);
-        }
-        if (prop == "triggerUpTree") {
-          return target.triggerUpTree.bind(receiver);
-        }
-        if (prop == "keys") {
-          return target.keys.bind(receiver);
+              });
+              return ret;
+            }
+            return currentTarget.data;
+          case "isReactive":
+            return true;
+          case "subscribe":
+            return target.subscribe.bind(receiver);
+          case "triggerSubs":
+            return target.triggerSubs.bind(receiver);
+          case "triggerDelayedSubs":
+            return target.triggerDelayedSubs.bind(receiver);
+          case "triggerChange":
+            return target.triggerChange.bind(receiver);
+          case "triggerUpTree":
+            return target.triggerUpTree.bind(receiver);
+          case "keys":
+            return target.keys.bind(receiver);
+          case "orphan":
+            return target.orphan.bind({ receiver, target });
         }
         if (typeof target.data[prop] === "function") {
           return target.proxyFunction.bind({ target, prop, receiver });
