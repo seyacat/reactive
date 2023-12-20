@@ -117,27 +117,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           });
         }
       },
-      /*triggerDelayedSubs: function (data) {
-        const { prop, path, value, oldValue } = data;
-        const localpath = [...path.slice(this._path.length, path.length)];
-        const localpathString = localpath.join(".");
-        const target = this._target;
-        if (target._delayedPayloads[localpathString]) {
-          target._delayedPayloads[localpathString].value = data.value;
-        } else {
-          target._delayedPayloads[localpathString] = data;
-          setTimeout(
-            function () {
-              this.triggerSubs.bind(this)({
-                ...target._delayedPayloads[localpathString],
-                localpath,
-              });
-              delete target._delayedPayloads[localpathString];
-            }.bind(this),
-            target._subscriptionDelay
-          );
-        }
-      },*/
+
       triggerChange: function (prop) {
         if (prop) {
           this._target.triggerSubs.bind(this)({
@@ -301,6 +281,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         let oldData = receiver._data;
         let oldValue = target.data[prop];
 
+        //TODO this feature avoid replace object, not sure if its correct
         if (
           target.data[prop] &&
           target.data[prop].isReactive &&

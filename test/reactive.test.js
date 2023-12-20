@@ -158,3 +158,17 @@ it("Delayed trigger on tree", async function () {
   games.level1[0].level3 = "KO1";
   await new Promise((resolve) => setTimeout(resolve, 20)); //<--- wait delay triggered
 });
+
+it("Avoid loop", function () {
+  const games = Reactive(null);
+  games.subscribe("test", (data) => {
+    const { base, prop, path, pathValues, value, oldValue } = data;
+    assert.equal(prop, "test");
+    assert.equal(path.length, 1);
+    assert.equal(pathValues[0], 1);
+    assert.equal(value, 1);
+    assert.equal(oldValue, undefined);
+    games.test = 2; //<-- Change same prop inside subscription ignored for trigger
+  });
+  games.test = 1; //<--- this value ignored because of subscriptionDelay
+});
