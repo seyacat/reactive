@@ -24,13 +24,13 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           propArr = Array.from(new Set(propInput));
         }
         for (const prop of propArr) {
-          if (this._target._subscriptions[prop]) {
-            this._target._subscriptions[prop].push(func);
+          if (this.target._subscriptions[prop]) {
+            this.target._subscriptions[prop].push(func);
           } else {
-            this._target._subscriptions[prop] = [func];
+            this.target._subscriptions[prop] = [func];
           }
           if (options.triggerChange) {
-            this.triggerChange(prop);
+            this.receiver.triggerChange(prop);
           }
         }
       },
@@ -61,20 +61,41 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           }
 
           //WIDE SUBSCRIPTION
-
           for (const sub of [
             ...(target._subscriptions[localpath[0]] ?? []),
             ...(target._subscriptions["_all"] ?? []),
           ]) {
-            sub({
-              base: this,
-              prop,
-              path: localpath,
-              value: value ?? valueThoughtLocalPath,
-              oldValue,
-              pathValues,
-              prefix: this._prefix,
-            });
+            if (target._subscriptionDelay) {
+              if (target._delayedPayloads[localpathString]) {
+                target._delayedPayloads[localpathString].value = data.value;
+                target._delayedPayloads[localpathString].pathValues =
+                  pathValues;
+              } else {
+                target._delayedPayloads[localpathString] = {
+                  base: this,
+                  prop,
+                  path: localpath,
+                  value: value ?? valueThoughtLocalPath,
+                  oldValue,
+                  pathValues,
+                  prefix: this._prefix,
+                };
+                setTimeout(function () {
+                  sub({ ...target._delayedPayloads[localpathString] });
+                  delete target._delayedPayloads[localpathString];
+                }, target._subscriptionDelay);
+              }
+            } else {
+              sub({
+                base: this,
+                prop,
+                path: localpath,
+                value: value ?? valueThoughtLocalPath,
+                oldValue,
+                pathValues,
+                prefix: this._prefix,
+              });
+            }
           }
         }
         //END MUTTED
@@ -82,28 +103,16 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
 
         //NOTYFY PARENT
         if (target._parent?.receiver) {
-          if (target._subscriptionDelay) {
-            target._parent.receiver.triggerDelayedSubs.bind(
-              target._parent?.receiver
-            )({
-              prop,
-              path,
-              value: value ?? valueThoughtLocalPath,
-              pathValues,
-              oldValue,
-            });
-          } else {
-            target._parent.receiver.triggerSubs.bind(target._parent?.receiver)({
-              prop,
-              path,
-              value: value,
-              pathValues,
-              oldValue,
-            });
-          }
+          target._parent.receiver.triggerSubs.bind(target._parent?.receiver)({
+            prop,
+            path,
+            value: value,
+            pathValues,
+            oldValue,
+          });
         }
       },
-      triggerDelayedSubs: function (data) {
+      /*triggerDelayedSubs: function (data) {
         const { prop, path, value, oldValue } = data;
         const localpath = [...path.slice(this._path.length, path.length)];
         const localpathString = localpath.join(".");
@@ -123,7 +132,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             target._subscriptionDelay
           );
         }
-      },
+      },*/
       triggerChange: function (prop) {
         if (prop) {
           this._target.triggerSubs.bind(this)({
@@ -242,7 +251,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           case "isReactive":
             return true;
           case "subscribe":
-            return target.subscribe.bind(receiver);
+            return target.subscribe.bind({ receiver, target });
           case "triggerSubs":
             return target.triggerSubs.bind(receiver);
           case "triggerDelayedSubs":
