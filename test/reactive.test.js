@@ -115,6 +115,27 @@ it("Delayed trigger", async function () {
   await new Promise((resolve) => setTimeout(resolve, 20));
 });
 
+it("Delayed trigger on subscription", async function () {
+  const games = Reactive(null, {
+    prefix: "subcriptionDelayed",
+  });
+  games.subscribe(
+    "test",
+    (data) => {
+      const { base, prop, path, pathValues, value, oldValue } = data;
+      assert.equal(prop, "test");
+      assert.equal(path.length, 1);
+      assert.equal(pathValues[0], 2);
+      assert.equal(value, 2);
+      assert.equal(oldValue, undefined);
+    },
+    { subscriptionDelay: 10 }
+  );
+  games.test = 1; //<--- this value ignored because of subscriptionDelay
+  games.test = 2;
+  await new Promise((resolve) => setTimeout(resolve, 20));
+});
+
 it("Delayed trigger on tree", async function () {
   const games = Reactive(
     {
