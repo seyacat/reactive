@@ -13,7 +13,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
       subscribe: function (
         propInput,
         func,
-        options = { triggerChange: false }
+        options = { triggerChange: false, subscriptionDelay: 0 }
       ) {
         let propArr;
         if (!propInput) {
@@ -25,9 +25,14 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         }
         for (const prop of propArr) {
           if (this.target._subscriptions[prop]) {
-            this.target._subscriptions[prop].push(func);
+            this.target._subscriptions[prop].push({
+              func,
+              subscriptionDelay: options.subscriptionDelay,
+            });
           } else {
-            this.target._subscriptions[prop] = [func];
+            this.target._subscriptions[prop] = [
+              { func, subscriptionDelay: options.subscriptionDelay },
+            ];
           }
           if (options.triggerChange) {
             this.receiver.triggerChange(prop);
@@ -65,7 +70,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             ...(target._subscriptions[localpath[0]] ?? []),
             ...(target._subscriptions["_all"] ?? []),
           ]) {
-            if (target._subscriptionDelay) {
+            if (target._subscriptionDelay || sub.subscriptionDelay) {
               if (target._delayedPayloads[localpathString]) {
                 target._delayedPayloads[localpathString].value = data.value;
                 target._delayedPayloads[localpathString].pathValues =
@@ -81,12 +86,12 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
                   prefix: this._prefix,
                 };
                 setTimeout(function () {
-                  sub({ ...target._delayedPayloads[localpathString] });
+                  sub.func({ ...target._delayedPayloads[localpathString] });
                   delete target._delayedPayloads[localpathString];
-                }, target._subscriptionDelay);
+                }, target._subscriptionDelay || sub.subscriptionDelay);
               }
             } else {
-              sub({
+              sub.func({
                 base: this,
                 prop,
                 path: localpath,
