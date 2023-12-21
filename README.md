@@ -1,6 +1,29 @@
 # Reactive function returns proxy object with subcription system
 
+# Install
+
+```bash
+npm install @seyacat/rective
+```
+
+```js
+const {Reactive} = require("@seyacat/reactive");
+const myReactive = Reactive();
+```
+
+# Browser usage
+
+```html
+<script src="https://seyacat.github.io/reactive/reactive.js"></script>
+<script>
+  const myReactive = Reactive();
+</script>
+```
+
 # Examples
+
+# html example
+https://seyacat.github.io/reactive/test/basictest.html
 
 ## Simple example
 ```js
