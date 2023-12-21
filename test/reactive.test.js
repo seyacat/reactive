@@ -60,10 +60,11 @@ it("Trigger change when subscribe", function () {
       assert.equal(pathValues[0], 1);
       assert.equal(value, 1);
       assert.equal(oldValue, undefined);
+      games.ok = "OK";
     },
     { triggerChange: true }
   );
-
+  assert.equal(games.ok, "OK");
   //Multiple property subcription
   games.subscribe(["test2", "test3"], (data) => {
     const { base, prop, path, pathValues, value, oldValue } = data;
@@ -71,14 +72,17 @@ it("Trigger change when subscribe", function () {
     assert.equal(path.length, 1);
     assert.equal(value, "OK");
     assert.equal(oldValue, undefined);
+    games.ok = "OK2";
   });
   games.test2 = "OK";
   games.test3 = "OK";
+  assert.equal(games.ok, "OK2");
 });
 
 it("Reactive Chain", function () {
   const games = Reactive(
     {
+      number: 1,
       level1: Reactive([Reactive({ level3: "OK" }, { prefix: "level2" })], {
         prefix: "level1",
       }),
@@ -95,6 +99,10 @@ it("Reactive Chain", function () {
   });
   assert.equal(games.level1[0].level3, "OK");
   games.level1[0].level3 = "KO";
+  assert.equal(
+    JSON.stringify(games._),
+    JSON.stringify({ number: 1, level1: [{ level3: "KO" }] })
+  );
 });
 
 it("Delayed trigger", async function () {
@@ -109,10 +117,13 @@ it("Delayed trigger", async function () {
     assert.equal(pathValues[0], 2);
     assert.equal(value, 2);
     assert.equal(oldValue, undefined);
+    games.ok = "OK";
   });
   games.test = 1; //<--- this value ignored because of subscriptionDelay
   games.test = 2;
+  assert.equal(games.ok, undefined);
   await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(games.ok, "OK");
 });
 
 it("Delayed trigger on subscription", async function () {
@@ -195,7 +206,6 @@ it("Manual trigger loop on tree", function () {
   //SUBSCRIBE to every change in Reactive chain
   games.subscribe(null, (data) => {
     const { base, prop, path, pathValues, value, oldValue } = data;
-    console.log(data);
     assert.equal(prop, "targetReactive");
     assert.equal(
       JSON.stringify(path),
@@ -206,5 +216,90 @@ it("Manual trigger loop on tree", function () {
   });
 
   targetReactive.triggerChange();
-  console.log(targetReactive);
+});
+
+it("Reactive Array", function () {
+  const games = Reactive(
+    [
+      Reactive([1, 2, 3, 5]),
+      Reactive([1, 2, 3, 5]),
+      Reactive([1, 2, 3, 5]),
+      Reactive([1, 2, 3, 5]),
+    ],
+    { prefix: "base" }
+  );
+  //SUBSCRIBE to every change in Reactive chain
+  games.subscribe(null, (data) => {
+    const { base, prop, path, pathValues, value, oldValue } = data;
+  });
+
+  games[0].push(Reactive({ test: "IM HERE" }));
+  games[1].shift();
+  games[2].pop();
+  games[3].unshift(Reactive([7, 7, 7]));
+
+  assert.equal(
+    JSON.stringify(games._),
+    JSON.stringify([
+      [1, 2, 3, 5, { test: "IM HERE" }],
+      [2, 3, 5],
+      [1, 2, 3],
+      [[7, 7, 7], 1, 2, 3, 5],
+    ])
+  );
+});
+
+it("Remove reactive from parent as itself", function () {
+  const target1 = Reactive(["IM 1"]);
+  const target2 = Reactive(["IM 2"]);
+  const item3 = Reactive(["IM 3"]);
+  const target3 = Reactive({ item3, item4: Reactive() });
+  const games = Reactive([target1, target2], { prefix: "base" });
+  //SUBSCRIBE to every change in Reactive chain
+
+  assert.equal(target1._target._parent.prop, 0);
+  assert.equal(target2._target._parent.prop, 1);
+  assert.equal(item3._target._parent.prop, "item3");
+  target1.orphan();
+  assert.equal(target1._target._parent, null);
+  assert.equal(target2._target._parent.prop, 0);
+  item3.orphan();
+  assert.equal(item3._target._parent, null);
+});
+
+it("Iterators", function () {
+  const games = Reactive([1, 2, 3, 4, 5, 6, 7, 8]);
+  const games2 = Reactive({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8 });
+  let counter = 0;
+  for (const game of games) {
+    counter++;
+    assert.equal(game, counter);
+  }
+  counter = 0;
+  for (const [key, value] of games2) {
+    counter++;
+    assert.equal(value, counter);
+  }
+});
+
+it("Reactive of non object", function () {
+  const games = Reactive(1);
+  assert.equal(games._, 1);
+});
+
+it("Set inner properties", function () {
+  const child = Reactive();
+  const games = Reactive({ child });
+  assert.equal(child._parent.receiver, games);
+  assert.equal(games._proxy, games);
+  assert.equal(games._target._proxy, games);
+  games._prefix = "test";
+  games._proxy = null;
+  child._parent = null;
+  assert.equal(games._prefix, "test");
+  assert.equal(games._target._prefix, "test");
+  assert.equal(games._proxy, null);
+  assert.equal(games._target._proxy, null);
+  assert.equal(child._parent, null);
+  assert.equal(games._target._parent, null);
 });
