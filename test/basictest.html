@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>test</title>
+    <link rel="stylesheet" href="main.css" />
   </head>
   <body>
     <script src="https://seyacat.github.io/reactive/reactive.js"></script>
@@ -20,21 +21,20 @@
       }, 10000);
     </script>
     <!-- built files will be auto injected -->
-    <iframe
-      src="https://github.com/seyacat/reactive/blob/c29a2f17dfe76aa91d4f0f329a2bb354aab8797f/test/basictest.html#L1"
-    ></iframe>
+
     <div id="code"></div>
-    <iframe
-      src="https://github.com/seyacat/reactive/blob/c29a2f17dfe76aa91d4f0f329a2bb354aab8797f/test/basictest.html#L1"
-    >
-    </iframe>
+
     <script>
       fetch(
-        "https://github.com/seyacat/reactive/blob/c29a2f17dfe76aa91d4f0f329a2bb354aab8797f/test/basictest.html",
-        { mode: "cors" }
+        "https://raw.githubusercontent.com/seyacat/reactive/master/test/basictest.html"
       )
         .then((response) => response.text())
-        .then((data) => (document.getElementById("code").textContent = data));
+        .then((data) => {
+          console.log(data);
+          document.getElementById("code").innerHTML = new Option(data).innerHTML
+            .replace(/\n/g, "<br>")
+            .replace(/\s\s/g, "&nbsp;&nbsp;");
+        });
     </script>
   </body>
 </html>

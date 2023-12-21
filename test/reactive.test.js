@@ -172,3 +172,39 @@ it("Avoid loop", function () {
   });
   games.test = 1; //<--- this value ignored because of subscriptionDelay
 });
+
+it("Manual trigger loop on tree", function () {
+  const targetReactive = Reactive({ msg: "HERE AM I" });
+  const games = Reactive(
+    {
+      level1: Reactive(
+        [
+          1,
+          Reactive({ level3: "OK", targetReactive }, { prefix: "level2" }),
+          1,
+          3,
+          5,
+        ],
+        {
+          prefix: "level1",
+        }
+      ),
+    },
+    { prefix: "base" }
+  );
+  //SUBSCRIBE to every change in Reactive chain
+  games.subscribe(null, (data) => {
+    const { base, prop, path, pathValues, value, oldValue } = data;
+    console.log(data);
+    assert.equal(prop, "targetReactive");
+    assert.equal(
+      JSON.stringify(path),
+      JSON.stringify(["level1", 1, "targetReactive"])
+    );
+    assert.equal(value.msg, "HERE AM I");
+    assert.equal(oldValue, undefined);
+  });
+
+  targetReactive.triggerChange();
+  console.log(targetReactive);
+});
