@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>test</title>
+  </head>
+  <body>
+    <script src="https://seyacat.github.io/reactive/reactive.js"></script>
+    <div id="app">
+      <div id="counter">1</div>
+      <button onclick="global.counter++">REACTIVE</button>
+    </div>
+    <script>
+      const global = Reactive({ counter: 1 });
+      global.subscribe("counter", (data) => {
+        document.getElementById("counter").innerHTML = data.value;
+      });
+      setInterval(() => {
+        global.counter = 0;
+      }, 10000);
+    </script>
+    <!-- built files will be auto injected -->
+  </body>
+</html>
