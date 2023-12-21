@@ -61,3 +61,8 @@ https://seyacat.github.io/reactive/test/basictest.html
   assert.equal(games.level1[0].level3, "OK");
   games.level1[0].level3 = "KO";
 ```
+
+## More examples
+
+please review in tests cases
+https://github.com/seyacat/reactive/blob/main/test/reactive.test.js
