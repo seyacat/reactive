@@ -1,4 +1,4 @@
-const { Reactive } = require("../reactive.js");
+const { Reactive, Reactivate } = require("../reactive.js");
 const chai = require("chai");
 const assert = require("assert");
 
@@ -354,4 +354,10 @@ it("Uptree trigger", function () {
 
   games.triggerUpTree();
   assert.equal(games.tree, "OK");
+});
+
+it("Reactivate test", function () {
+  const myObj = { 2: 2 };
+  const games = Reactivate(myObj, { 1: 1 }, { prefix: "base" });
+  assert.equal(games._rel, myObj);
 });
