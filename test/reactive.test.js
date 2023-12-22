@@ -249,7 +249,7 @@ it("Reactive Array", function () {
   );
 });
 
-it("Remove reactive from parent as itself", function () {
+it("Remove reactive from parent as itself, orphan function", function () {
   const target1 = Reactive(["IM 1"]);
   const target2 = Reactive(["IM 2"]);
   const item3 = Reactive(["IM 3"]);
@@ -265,6 +265,7 @@ it("Remove reactive from parent as itself", function () {
   assert.equal(target2._target._parent.prop, 0);
   item3.orphan();
   assert.equal(item3._target._parent, null);
+  item3.orphan();
 });
 
 it("Iterators", function () {
@@ -302,4 +303,55 @@ it("Set inner properties", function () {
   assert.equal(games._target._proxy, null);
   assert.equal(child._parent, null);
   assert.equal(games._target._parent, null);
+});
+
+it("Const reactive feature", function () {
+  const target1 = Reactive({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 }, { const: true });
+  const target2 = Reactive({ 6: 6 });
+  const target3 = Reactive({ 2: 2, 4: 4, 6: 6, 8: 8 });
+  const games = Reactive({ target1, target2, target3 });
+  games.target1 = target2;
+  games.target3 = target2;
+  assert.equal(games.target1, target1);
+  assert.equal(
+    JSON.stringify(target1._),
+    JSON.stringify({
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      5: 5,
+      6: 6,
+    })
+  );
+  assert.equal(games.target3, target2);
+});
+
+it("Uptree trigger", function () {
+  const games = Reactive(
+    {
+      number: 1,
+      level1: Reactive(
+        [
+          Reactive(
+            { level3: Reactive({ ok: "OK" }, { prefix: "okTarget" }) },
+            { prefix: "level2" }
+          ),
+        ],
+        {
+          prefix: "level1",
+        }
+      ),
+    },
+    { prefix: "base" }
+  );
+  //SUBSCRIBE to every change in Reactive chain
+  games.level1[0].level3.subscribe("ok", (data) => {
+    const { base, prop, path, pathValues, value, oldValue } = data;
+    assert.equal(JSON.stringify(data.path), JSON.stringify(["ok"]));
+    games.tree = "OK";
+  });
+
+  games.triggerUpTree();
+  assert.equal(games.tree, "OK");
 });

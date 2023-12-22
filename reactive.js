@@ -84,7 +84,7 @@ function Reactive(
                   base: this,
                   prop,
                   path: localpath,
-                  value: value ?? valueThoughtLocalPath,
+                  value: value,
                   oldValue,
                   pathValues,
                   prefix: this._prefix,
@@ -142,10 +142,21 @@ function Reactive(
         }
       },
       triggerUpTree: function () {
-        for (prop of this.keys()) {
-          this.triggerChange(prop);
-          if (this._target.data[prop].isReactive) {
-            this._target.data[prop].triggerUpTree();
+        if (this.target.data.constructor.name === "Array") {
+          for (value of this.target.data) {
+            const prop = this.target.data.indexOf(value);
+            this.receiver.triggerChange(prop);
+            if (this.target.data[prop].isReactive) {
+              this.target.data[prop].triggerUpTree();
+            }
+          }
+        }
+        if (this.target.data.constructor.name === "Object") {
+          for ([prop, value] of Object.entries(this.target.data)) {
+            this.receiver.triggerChange(prop);
+            if (this.target.data[prop].isReactive) {
+              this.target.data[prop].triggerUpTree();
+            }
           }
         }
       },
@@ -219,10 +230,10 @@ function Reactive(
           case "_parent":
           case "_prefix":
           case "_proxy":
+          case "_const":
             return target[prop];
           case "_target":
             return target;
-          case "_data":
           case "_":
             if (target.data.constructor.name === "Object") {
               const ret = Object.fromEntries(
@@ -256,7 +267,7 @@ function Reactive(
           case "triggerChange":
             return target.triggerChange.bind(receiver);
           case "triggerUpTree":
-            return target.triggerUpTree.bind(receiver);
+            return target.triggerUpTree.bind({ target, receiver });
           case "orphan":
             return target.orphan.bind({ receiver, target });
           case "rebuildRelationships":
@@ -294,12 +305,12 @@ function Reactive(
         let oldValue = target.data[prop];
 
         //OBJECTS CAN BE CONST
+
         if (
-          this._const &&
-          target.data[prop] &&
+          target.data?.[prop]?._const &&
+          value?.isReactive &&
           target.data[prop].isReactive &&
-          value.isReactive &&
-          target.data[prop].constructor.name === "Object" &&
+          target.data[prop]._target.data.constructor.name === "Object" &&
           value?._target?.data.constructor.name === "Object"
         ) {
           //ON THIS CASE NO SELF CHANGE
