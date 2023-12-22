@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>test</title>
+    <link rel="stylesheet" href="main.css" />
+    <script src="../reactive.js"></script>
+  </head>
+  <body>
+    <button id="root" class="button" onclick="reactive.counter++">ROOT</button>
+    <div id="counter_root">0</div>
+    <button id="btn1" class="button" onclick="reactive.counter++">
+      REACTIVE
+    </button>
+    <div id="counter_btn1">0</div>
+    <button id="btn11" class="button" onclick="reactive.counter++">
+      REACTIVE1
+    </button>
+    <div id="counter_btn11">0</div>
+    <div id="code"></div>
+    <script>
+      root = Reactivate(document.getElementById("root"), {
+        counter: 0,
+        btn1: Reactivate(document.getElementById("btn1"), {
+          counter: 0,
+          btn11: Reactivate(document.getElementById("btn11"), { counter: 0 }),
+        }),
+      });
+      root.subscribe(null, (data) => {
+        restartAnimation(data.base._rel);
+        document.getElementById("counter_root").innerHTML = data.base.counter;
+      });
+
+      root.btn1.subscribe(null, (data) => {
+        restartAnimation(data.base._rel);
+        document.getElementById("counter_btn1").innerHTML = data.base.counter;
+      });
+
+      root.btn1.btn11.subscribe(null, (data) => {
+        restartAnimation(data.base._rel);
+        document.getElementById("counter_btn11").innerHTML = data.base.counter;
+      });
+
+      const restartAnimation = (target) => {
+        target.style.animation = "none";
+        target.offsetHeight;
+        target.style.animation = null;
+      };
+    </script>
+    <script>
+      fetch(
+        "https://raw.githubusercontent.com/seyacat/reactive/master/test/visulaTest.html"
+      )
+        .then((response) => response.text())
+        .then((data) => {
+          console.log(data);
+          document.getElementById("code").innerHTML = new Option(data).innerHTML
+            .replace(/\n/g, "<br>")
+            .replace(/\s\s/g, "&nbsp;&nbsp;");
+        });
+    </script>
+  </body>
+</html>

@@ -1,9 +1,10 @@
 function Reactive(
   ob,
-  options = { prefix: "r-", subscriptionDelay: 0, const: false }
+  options = { prefix: "r-", subscriptionDelay: 0, const: false, related: null }
 ) {
   const newProxy = new Proxy(
     {
+      _rel: options.related,
       _const: options.const,
       _prefix: options.prefix,
       _subscriptionDelay: options.subscriptionDelay,
@@ -231,6 +232,7 @@ function Reactive(
           case "_prefix":
           case "_proxy":
           case "_const":
+          case "_rel":
             return target[prop];
           case "_target":
             return target;
@@ -363,8 +365,14 @@ function Reactive(
   return newProxy;
 }
 
+function Reactivate(related, ob, options) {
+  related.reactive = Reactive(ob, { ...options, related });
+  return related.reactive;
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     Reactive,
+    Reactivate,
   };
 }

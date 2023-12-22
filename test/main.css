@@ -16,3 +16,18 @@
   display: block;
   word-wrap: break-word;
 }
+
+.button {
+  background-color: gray;
+  animation-name: breadth;
+  animation-duration: 500ms;
+}
+
+@keyframes breadth {
+  0% {
+    background-color: rgb(4, 248, 0);
+  }
+  100% {
+    background-color: gray;
+  }
+}
