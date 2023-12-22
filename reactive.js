@@ -1,6 +1,10 @@
-function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
+function Reactive(
+  ob,
+  options = { prefix: "r-", subscriptionDelay: 0, const: false }
+) {
   const newProxy = new Proxy(
     {
+      _const: options.const,
       _prefix: options.prefix,
       _subscriptionDelay: options.subscriptionDelay,
       _mutted: new Set(),
@@ -145,9 +149,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
           }
         }
       },
-      /*keys: function () {
-        return Object.keys(this._data);
-      },*/
+
       proxyFunction: function () {
         //EXECUTE FUNCTION
         const ret = this.target.data[this.prop].bind(this.target.data)(
@@ -226,7 +228,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
               const ret = Object.fromEntries(
                 Object.entries(target.data).map(([key, val]) => {
                   if (val?.isReactive) {
-                    return [key, val._data];
+                    return [key, val._];
                   } else {
                     return [key, val];
                   }
@@ -237,7 +239,7 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
             if (target.data.constructor.name === "Array") {
               const ret = target.data.map((val) => {
                 if (val?.isReactive) {
-                  return val._data;
+                  return val._;
                 } else {
                   return val;
                 }
@@ -288,15 +290,17 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         }
 
         //RUN PARENT SUBSCRIPTIONS
-        let oldData = receiver._data;
+        let oldData = receiver._;
         let oldValue = target.data[prop];
 
-        //TODO this feature avoid replace object, not sure if its correct
+        //OBJECTS CAN BE CONST
         if (
+          this._const &&
           target.data[prop] &&
           target.data[prop].isReactive &&
           value.isReactive &&
-          value?._target?.data.constructor.name !== "Array"
+          target.data[prop].constructor.name === "Object" &&
+          value?._target?.data.constructor.name === "Object"
         ) {
           //ON THIS CASE NO SELF CHANGE
           for ([k, v] of value) {
@@ -306,13 +310,13 @@ function Reactive(ob, options = { prefix: "r-", subscriptionDelay: 0 }) {
         } else {
           target.data[prop] = value;
         }
-        //RUN SUBSCRIPTIONS
 
+        //RUN SUBSCRIPTIONS
         target.triggerSubs.bind(receiver)({
           prop,
           path: receiver._path,
-          value: value?.isReactive ? value._data : value,
-          oldValue: oldValue?.isReactive ? oldValue._data : oldValue,
+          value: value?.isReactive ? value._ : value,
+          oldValue: oldValue?.isReactive ? oldValue._ : oldValue,
         });
 
         return true;
