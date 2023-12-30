@@ -262,7 +262,6 @@ it("Remove reactive from parent as itself, orphan function", function () {
   assert.equal(item3._target._parents[0].prop, "item3");
   target1.orphan();
   assert.equal(target1._target._parents.length, 0);
-  console.log(target2._target._parents.length);
   assert.equal(target2._target._parents[0].prop, 0);
   item3.orphan();
   assert.equal(item3._target._parents.length, 0);
@@ -361,4 +360,26 @@ it("Reactivate test", function () {
   const myObj = { 2: 2 };
   const games = Reactivate(myObj, { 1: 1 }, { prefix: "base" });
   assert.equal(games._rel, myObj);
+});
+
+it("Multiparent reactive feature", function () {
+  const target1 = Reactive(
+    { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 },
+    { prefix: "target1" }
+  );
+  const parent1 = Reactive({ 6: 6, target1 }, { prefix: "parent1" });
+  const parent2 = Reactive({ 2: 2, 4: 4, 6: 6, 8: 8 }, { prefix: "parent2" });
+  parent2.target1 = target1;
+
+  parent1.subscribe(null, (data) => {
+    assert.equal(data.base._prefix, parent1._prefix);
+  });
+  parent2.subscribe(null, (data) => {
+    assert.equal(data.base._prefix, parent2._prefix);
+  });
+
+  target1.test = "OK";
+
+  delete parent1.target1;
+  assert.equal(target1._parents.length, 1);
 });

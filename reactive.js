@@ -85,7 +85,7 @@ function Reactive(
                   pathValues;
               } else {
                 this.target._delayedPayloads[localpathString] = {
-                  base: this,
+                  base: this.receiver,
                   prop,
                   path: localpath,
                   value: value,
@@ -105,7 +105,7 @@ function Reactive(
               }
             } else {
               sub.func({
-                base: this,
+                base: this.receiver,
                 prop,
                 path: localpath,
                 value: value ?? valueThoughtLocalPath,
@@ -233,6 +233,10 @@ function Reactive(
         const localpath = path.join(".");
         this.target._mutted.add(localpath);
       },
+      unmute: function (path) {
+        const localpath = path.join(".");
+        this.target._mutted.delete(localpath);
+      },
     },
     {
       get: (target, prop, receiver) => {
@@ -245,14 +249,6 @@ function Reactive(
           }
         }
         switch (prop) {
-          /*case "_paths":
-            const ret = [];
-            let rv = receiver;
-            while (rv?._parents.length) {
-              ret.unshift(rv._parent.prop);
-              rv = rv._parent.receiver;
-            }
-            return ret;*/
           case "_parents":
           case "_prefix":
           case "_proxy":
@@ -301,6 +297,8 @@ function Reactive(
             return target.rebuildRelationships.bind({ target, receiver });
           case "mute":
             return target.mute.bind({ target, receiver });
+          case "unmute":
+            return target.unmute.bind({ target, receiver });
         }
         if (
           typeof target.data[prop] === "function" &&
@@ -363,11 +361,21 @@ function Reactive(
       },
       deleteProperty(target, prop) {
         if (prop in target.data) {
+          if (target.data[prop].isReactive) {
+            const delIndex = target.data[prop]._parents.findIndex(
+              (childParent) => {
+                return (
+                  childParent.receiver === target.data[prop] &&
+                  childParent.prop === prop
+                );
+              }
+            );
+            target.data[prop]._parents.splice(delIndex, 1);
+          }
           delete target.data[prop];
           //POST TRIGGER
           target.triggerSubs.bind({ target: target, receiver: target._proxy })({
             prop: prop,
-            path: target._proxy._path,
           });
         }
         return true;
