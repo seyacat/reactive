@@ -257,14 +257,15 @@ it("Remove reactive from parent as itself, orphan function", function () {
   const games = Reactive([target1, target2], { prefix: "base" });
   //SUBSCRIBE to every change in Reactive chain
 
-  assert.equal(target1._target._parent.prop, 0);
-  assert.equal(target2._target._parent.prop, 1);
-  assert.equal(item3._target._parent.prop, "item3");
+  assert.equal(target1._target._parents[0].prop, 0);
+  assert.equal(target2._target._parents[0].prop, 1);
+  assert.equal(item3._target._parents[0].prop, "item3");
   target1.orphan();
-  assert.equal(target1._target._parent, null);
-  assert.equal(target2._target._parent.prop, 0);
+  assert.equal(target1._target._parents.length, 0);
+  console.log(target2._target._parents.length);
+  assert.equal(target2._target._parents[0].prop, 0);
   item3.orphan();
-  assert.equal(item3._target._parent, null);
+  assert.equal(item3._target._parents.length, 0);
   item3.orphan();
 });
 
@@ -291,7 +292,7 @@ it("Reactive of non object", function () {
 it("Set inner properties", function () {
   const child = Reactive();
   const games = Reactive({ child });
-  assert.equal(child._parent.receiver, games);
+  assert.equal(child._parents[0].receiver, games);
   assert.equal(games._proxy, games);
   assert.equal(games._target._proxy, games);
   games._prefix = "test";
