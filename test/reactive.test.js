@@ -5,14 +5,18 @@ const assert = require("assert");
 it("Reactive Basic", function () {
   const games = Reactive();
   //SUBSCRIBE to test property changes
-  games.subscribe("test", (data) => {
-    const { base, prop, path, pathValues, value, oldValue } = data;
-    assert.equal(prop, "test");
-    assert.equal(path.length, 1);
-    assert.equal(pathValues[0], 1);
-    assert.equal(value, 1);
-    assert.equal(oldValue, undefined);
-  });
+  games.subscribe(
+    "test",
+    (data) => {
+      const { base, prop, path, pathValues, value, oldValue } = data;
+      assert.equal(prop, "test");
+      assert.equal(path.length, 1);
+      assert.equal(pathValues[0], 1);
+      assert.equal(value, 1);
+      assert.equal(oldValue, undefined);
+    },
+    { pathValues: true }
+  );
   games.test = 1;
 
   //Multiple property subcription
@@ -62,7 +66,7 @@ it("Trigger change when subscribe", function () {
       assert.equal(oldValue, undefined);
       games.ok = "OK";
     },
-    { triggerChange: true }
+    { triggerChange: true, pathValues: true }
   );
   assert.equal(games.ok, "OK");
   //Multiple property subcription
@@ -110,15 +114,19 @@ it("Delayed trigger", async function () {
     prefix: "subcriptionDelayed",
     subscriptionDelay: 10,
   });
-  games.subscribe("test", (data) => {
-    const { base, prop, path, pathValues, value, oldValue } = data;
-    assert.equal(prop, "test");
-    assert.equal(path.length, 1);
-    assert.equal(pathValues[0], 2);
-    assert.equal(value, 2);
-    assert.equal(oldValue, undefined);
-    games.ok = "OK";
-  });
+  games.subscribe(
+    "test",
+    (data) => {
+      const { base, prop, path, pathValues, value, oldValue } = data;
+      assert.equal(prop, "test");
+      assert.equal(path.length, 1);
+      assert.equal(pathValues[0], 2);
+      assert.equal(value, 2);
+      assert.equal(oldValue, undefined);
+      games.ok = "OK";
+    },
+    { pathValues: true }
+  );
   games.test = 1; //<--- this value ignored because of subscriptionDelay
   games.test = 2;
   assert.equal(games.ok, undefined);
@@ -140,7 +148,7 @@ it("Delayed trigger on subscription", async function () {
       assert.equal(value, 2);
       assert.equal(oldValue, undefined);
     },
-    { subscriptionDelay: 10 }
+    { subscriptionDelay: 10, pathValues: true }
   );
   games.test = 1; //<--- this value ignored because of subscriptionDelay
   games.test = 2;
@@ -172,15 +180,19 @@ it("Delayed trigger on tree", async function () {
 
 it("Avoid loop", function () {
   const games = Reactive(null);
-  games.subscribe("test", (data) => {
-    const { base, prop, path, pathValues, value, oldValue } = data;
-    assert.equal(prop, "test");
-    assert.equal(path.length, 1);
-    assert.equal(pathValues[0], 1);
-    assert.equal(value, 1);
-    assert.equal(oldValue, undefined);
-    games.test = 2; //<-- Change same prop inside subscription ignored for trigger
-  });
+  games.subscribe(
+    "test",
+    (data) => {
+      const { base, prop, path, pathValues, value, oldValue } = data;
+      assert.equal(prop, "test");
+      assert.equal(path.length, 1);
+      assert.equal(pathValues[0], 1);
+      assert.equal(value, 1);
+      assert.equal(oldValue, undefined);
+      games.test = 2; //<-- Change same prop inside subscription ignored for trigger
+    },
+    { pathValues: true }
+  );
   games.test = 1; //<--- this value ignored because of subscriptionDelay
 });
 

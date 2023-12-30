@@ -19,7 +19,11 @@ function Reactive(
       subscribe: function (
         propInput,
         func,
-        options = { triggerChange: false, subscriptionDelay: 0 }
+        options = {
+          triggerChange: false,
+          subscriptionDelay: 0,
+          pathValues: false,
+        }
       ) {
         let propArr;
         if (!propInput) {
@@ -37,7 +41,11 @@ function Reactive(
             });
           } else {
             this.target._subscriptions[prop] = [
-              { func, subscriptionDelay: options.subscriptionDelay },
+              {
+                func,
+                subscriptionDelay: options.subscriptionDelay,
+                pathValues: options.pathValues,
+              },
             ];
           }
           if (options.triggerChange) {
@@ -64,19 +72,20 @@ function Reactive(
           this.target._subscriptions[localpath[0]]?.length ||
           this.target._subscriptions["_all"]?.length
         ) {
-          //GET VALUE THOUGT PATH
-          valueThoughtLocalPath = this.receiver;
-
-          for (const k of localpath) {
-            valueThoughtLocalPath = valueThoughtLocalPath._target.data[k];
-            pathValues.push(valueThoughtLocalPath);
-          }
-
           //WIDE SUBSCRIPTION
           for (const sub of [
             ...(this.target._subscriptions[localpath[0]] ?? []),
             ...(this.target._subscriptions["_all"] ?? []),
           ]) {
+            if (sub.pathValues) {
+              valueThoughtLocalPath = this.receiver;
+
+              for (const k of localpath) {
+                valueThoughtLocalPath = valueThoughtLocalPath._target.data[k];
+                pathValues.push(valueThoughtLocalPath);
+              }
+            }
+
             if (this.target._subscriptionDelay || sub.subscriptionDelay) {
               if (this.target._delayedPayloads[localpathString]) {
                 this.target._delayedPayloads[localpathString].value =
