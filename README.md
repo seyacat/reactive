@@ -54,7 +54,6 @@ https://seyacat.github.io/reactive/test/visualTest.html
   //SUBSCRIBE to every change in Reactive chain
   games.subscribe(null, (data) => {
     const { base, prop, path, pathValues, value, oldValue } = data;
-    console.log("DATA", { data });
     assert.equal(prop, "level3");
     assert.equal(JSON.stringify(path), JSON.stringify(["level1", 0, "level3"]));
     assert.equal(value, "KO");

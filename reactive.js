@@ -365,12 +365,14 @@ function Reactive(
             const delIndex = target.data[prop]._parents.findIndex(
               (childParent) => {
                 return (
-                  childParent.receiver === target.data[prop] &&
+                  childParent.receiver === target._proxy &&
                   childParent.prop === prop
                 );
               }
             );
-            target.data[prop]._parents.splice(delIndex, 1);
+            if (delIndex != null) {
+              target.data[prop]._parents.splice(delIndex, 1);
+            }
           }
           delete target.data[prop];
           //POST TRIGGER

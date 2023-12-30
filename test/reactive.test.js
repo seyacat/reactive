@@ -380,6 +380,20 @@ it("Multiparent reactive feature", function () {
 
   target1.test = "OK";
 
+  assert.equal(target1._parents.length, 2);
   delete parent1.target1;
   assert.equal(target1._parents.length, 1);
+});
+
+it("External mute feature", function () {
+  const target1 = Reactive({ ok: "ok" }, { prefix: "target1" });
+  target1.subscribe(null, (data) => {
+    target1.ok = "ko";
+  });
+  target1.mute(["trigger"]);
+  target1.trigger = "KO";
+  assert.equal(target1.ok, "ok");
+  target1.unmute(["trigger"]);
+  target1.trigger = "OK";
+  assert.equal(target1.ok, "ko");
 });
