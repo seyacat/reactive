@@ -56,16 +56,16 @@ function Reactive(
       triggerSubs: function (data) {
         let { prop, path, value, oldValue } = data;
         path = path ? path : [prop];
+        const pathString = path.join(".");
         const localpath = path;
 
-        const localpathString = localpath.join(".");
         let valueThoughtLocalPath = null;
         let pathValues = [];
 
         //TEST IF MUTTED
-        if (this.target._mutted.has(localpathString)) return;
+        if (this.target._mutted.has(pathString)) return;
         //START MUTTED
-        this.target._mutted.add(localpathString);
+        this.target._mutted.add(pathString);
 
         //TEST SUBS
         if (
@@ -87,16 +87,16 @@ function Reactive(
             }
 
             if (this.target._subscriptionDelay || sub.subscriptionDelay) {
-              if (this.target._delayedPayloads[localpathString]) {
-                this.target._delayedPayloads[localpathString].value =
-                  data.value;
-                this.target._delayedPayloads[localpathString].pathValues =
+              if (this.target._delayedPayloads[pathString]) {
+                this.target._delayedPayloads[pathString].value = data.value;
+                this.target._delayedPayloads[pathString].pathValues =
                   pathValues;
               } else {
-                this.target._delayedPayloads[localpathString] = {
+                this.target._delayedPayloads[pathString] = {
                   base: this.receiver,
                   prop,
-                  path: localpath,
+                  path,
+                  pathString,
                   value: value,
                   oldValue,
                   pathValues,
@@ -105,9 +105,9 @@ function Reactive(
                 setTimeout(
                   function () {
                     sub.func({
-                      ...this.target._delayedPayloads[localpathString],
+                      ...this.target._delayedPayloads[pathString],
                     });
-                    delete this.target._delayedPayloads[localpathString];
+                    delete this.target._delayedPayloads[pathString];
                   }.bind(this),
                   this.target._subscriptionDelay || sub.subscriptionDelay
                 );
@@ -116,7 +116,8 @@ function Reactive(
               sub.func({
                 base: this.receiver,
                 prop,
-                path: localpath,
+                path,
+                pathString,
                 value: value ?? valueThoughtLocalPath,
                 oldValue,
                 pathValues,
@@ -126,7 +127,7 @@ function Reactive(
           }
         }
         //END MUTTED
-        this.target._mutted.delete(localpathString);
+        this.target._mutted.delete(pathString);
 
         //NOTYFY PARENT
         //if (target._parent?.receiver) {
