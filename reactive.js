@@ -1,14 +1,19 @@
 function Reactive(
   ob,
-  options = { prefix: "r-", subscriptionDelay: 0, const: false, related: null }
+  options = {
+    prefix: "r-",
+    subscriptionDelay: 0,
+    const: false,
+    related: null,
+    ignoreSameValue: false,
+  }
 ) {
   const newProxy = new Proxy(
     {
+      _options: options,
       _rel: options.related,
       _parents: [],
-      _const: options.const,
       _prefix: options.prefix,
-      _subscriptionDelay: options.subscriptionDelay,
       _mutted: new Set(),
       _delayedPayloads: {},
       _proxy: null,
@@ -86,7 +91,10 @@ function Reactive(
               }
             }
 
-            if (this.target._subscriptionDelay || sub.subscriptionDelay) {
+            if (
+              this.target._options.subscriptionDelay ||
+              sub.subscriptionDelay
+            ) {
               if (this.target._delayedPayloads[pathString]) {
                 this.target._delayedPayloads[pathString].value = data.value;
                 this.target._delayedPayloads[pathString].pathValues =
@@ -109,7 +117,8 @@ function Reactive(
                     });
                     delete this.target._delayedPayloads[pathString];
                   }.bind(this),
-                  this.target._subscriptionDelay || sub.subscriptionDelay
+                  this.target._options.subscriptionDelay ||
+                    sub.subscriptionDelay
                 );
               }
             } else {
@@ -262,7 +271,7 @@ function Reactive(
           case "_parents":
           case "_prefix":
           case "_proxy":
-          case "_const":
+          case "_options":
           case "_rel":
             return target[prop];
           case "_target":
@@ -323,6 +332,7 @@ function Reactive(
           case "_parents":
           case "_prefix":
           case "_proxy":
+          case "_rel":
             target[prop] = value;
             return true;
         }
@@ -333,7 +343,7 @@ function Reactive(
         }
         //BLOCK SAME VALUE
 
-        if (target.data[prop] === value) {
+        if (target._options?.ignoreSameValue && target.data[prop] === value) {
           return true;
         }
 
@@ -344,7 +354,7 @@ function Reactive(
         //OBJECTS CAN BE CONST
 
         if (
-          target.data?.[prop]?._const &&
+          target.data?.[prop]?._options?.const &&
           value?.isReactive &&
           target.data[prop].isReactive &&
           target.data[prop]._target.data.constructor.name === "Object" &&
