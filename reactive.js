@@ -65,8 +65,13 @@ function Reactive(
         }
       },
       triggerSubs: function (data) {
-        let { prop, path, value, oldValue } = data;
-        path = path ? path : [prop];
+        let { prop, path, pathIds, value, oldValue } = data;
+
+        if (!path) {
+          path = [prop];
+          pathIds = [value?._obId];
+        }
+
         const pathString = path.join(".");
         const localpath = path;
 
@@ -110,8 +115,9 @@ function Reactive(
                   base: this.receiver,
                   prop,
                   path,
+                  pathIds,
                   pathString,
-                  value: value,
+                  value: value?._isReactive ? value._ : value,
                   oldValue,
                   pathValues,
                   prefix: this._prefix,
@@ -132,8 +138,9 @@ function Reactive(
                 base: this.receiver,
                 prop,
                 path,
+                pathIds,
                 pathString,
-                value: value ?? valueThoughtLocalPath,
+                value: value?._isReactive ? value._ : value,
                 oldValue,
                 pathValues,
                 prefix: this._prefix,
@@ -153,6 +160,7 @@ function Reactive(
           })({
             prop,
             path: [parent.prop, ...path],
+            pathIds: [parent.receiver._obId, ...pathIds],
             value: value,
             pathValues,
             oldValue,
@@ -386,8 +394,8 @@ function Reactive(
         target.triggerSubs.bind({ target, receiver })({
           prop,
           path: receiver._path,
-          value: value?._isReactive ? value._ : value,
-          oldValue: oldValue?._isReactive ? oldValue._ : oldValue,
+          value: value,
+          oldValue: oldValue,
         });
 
         return true;
