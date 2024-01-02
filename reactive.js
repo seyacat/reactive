@@ -2,6 +2,7 @@ const reactiveObjects = new Map();
 function Reactive(
   ob,
   options = {
+    obId: null,
     prefix: "r-",
     subscriptionDelay: 0,
     const: false,
@@ -12,9 +13,10 @@ function Reactive(
   const newProxy = new Proxy(
     {
       _obId:
+        options.obId ??
         new Date().getTime().toString(36) +
-        "-" +
-        (performance.now() * 1000).toString(36).replace(".", "-"),
+          "-" +
+          (performance.now() * 1000).toString(36).replace(".", "-"),
       _options: options,
       _rel: options.related,
       _parents: [],
@@ -181,7 +183,7 @@ function Reactive(
           for (value of this.target.data) {
             const prop = this.target.data.indexOf(value);
             this.receiver.triggerChange(prop);
-            if (this.target.data[prop].isReactive) {
+            if (this.target.data[prop]._isReactive) {
               this.target.data[prop].triggerUpTree();
             }
           }
@@ -189,7 +191,7 @@ function Reactive(
         if (this.target.data.constructor.name === "Object") {
           for ([prop, value] of Object.entries(this.target.data)) {
             this.receiver.triggerChange(prop);
-            if (this.target.data[prop].isReactive) {
+            if (this.target.data[prop]._isReactive) {
               this.target.data[prop].triggerUpTree();
             }
           }
@@ -230,7 +232,7 @@ function Reactive(
       rebuildRelationships: function () {
         //Rebuild parent relationship
         for ([key, value] of Object.entries(this.target.data)) {
-          if (value?.isReactive) {
+          if (value?._isReactive) {
             const parentExists = value._target._parents.find((parent) => {
               return parent.receiver === this.receiver;
             });
@@ -290,7 +292,7 @@ function Reactive(
             if (target.data.constructor.name === "Object") {
               const ret = Object.fromEntries(
                 Object.entries(target.data).map(([key, val]) => {
-                  if (val?.isReactive) {
+                  if (val?._isReactive) {
                     return [key, val._];
                   } else {
                     return [key, val];
@@ -301,7 +303,7 @@ function Reactive(
             }
             if (target.data.constructor.name === "Array") {
               const ret = target.data.map((val) => {
-                if (val?.isReactive) {
+                if (val?._isReactive) {
                   return val._;
                 } else {
                   return val;
@@ -310,7 +312,7 @@ function Reactive(
               return ret;
             }
             return target.data;
-          case "isReactive":
+          case "_isReactive":
             return true;
           case "subscribe":
             return target.subscribe.bind({ target, receiver });
@@ -361,8 +363,8 @@ function Reactive(
 
         if (
           target.data?.[prop]?._options?.const &&
-          value?.isReactive &&
-          target.data[prop].isReactive &&
+          value?._isReactive &&
+          target.data[prop]._isReactive &&
           target.data[prop]._target.data.constructor.name === "Object" &&
           value?._target?.data.constructor.name === "Object"
         ) {
@@ -376,7 +378,7 @@ function Reactive(
         }
 
         //SET REACTIVE PARENTSHIP
-        if (value?.isReactive) {
+        if (value?._isReactive) {
           receiver.rebuildRelationships.bind({ target, receiver })();
         }
 
@@ -384,8 +386,8 @@ function Reactive(
         target.triggerSubs.bind({ target, receiver })({
           prop,
           path: receiver._path,
-          value: value?.isReactive ? value._ : value,
-          oldValue: oldValue?.isReactive ? oldValue._ : oldValue,
+          value: value?._isReactive ? value._ : value,
+          oldValue: oldValue?._isReactive ? oldValue._ : oldValue,
         });
 
         return true;
@@ -393,7 +395,7 @@ function Reactive(
       deleteProperty(target, prop) {
         const receiver = reactiveObjects.get(target._obId);
         if (prop in target.data) {
-          if (target.data[prop].isReactive) {
+          if (target.data[prop]._isReactive) {
             const delIndex = target.data[prop]._parents.findIndex(
               (childParent) => {
                 return (
