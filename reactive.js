@@ -1,3 +1,4 @@
+const reactiveObjects = new Map();
 function Reactive(
   ob,
   options = {
@@ -10,13 +11,16 @@ function Reactive(
 ) {
   const newProxy = new Proxy(
     {
+      _obId:
+        new Date().getTime().toString(36) +
+        "-" +
+        (performance.now() * 1000).toString(36).replace(".", "-"),
       _options: options,
       _rel: options.related,
       _parents: [],
       _prefix: options.prefix,
       _mutted: new Set(),
       _delayedPayloads: {},
-      _proxy: null,
       _subscriptions: {},
       _ignoredFunctions: ["valueOf", "toString", "join", "keys"],
       data: ob ?? {},
@@ -256,6 +260,12 @@ function Reactive(
         const localpath = path.join(".");
         this.target._mutted.delete(localpath);
       },
+      delete: function () {
+        this.receiver.orphan();
+        reactiveObjects.delete(this.target._obId);
+        delete this.receiver;
+        return true;
+      },
     },
     {
       get: (target, prop, receiver) => {
@@ -268,9 +278,9 @@ function Reactive(
           }
         }
         switch (prop) {
+          case "_obId":
           case "_parents":
           case "_prefix":
-          case "_proxy":
           case "_options":
           case "_rel":
             return target[prop];
@@ -318,6 +328,8 @@ function Reactive(
             return target.mute.bind({ target, receiver });
           case "unmute":
             return target.unmute.bind({ target, receiver });
+          case "delete":
+            return target.delete.bind({ target, receiver });
         }
         if (
           typeof target.data[prop] === "function" &&
@@ -331,18 +343,12 @@ function Reactive(
         switch (prop) {
           case "_parents":
           case "_prefix":
-          case "_proxy":
           case "_rel":
             target[prop] = value;
             return true;
         }
 
-        //SET REACTIVE PARENTSHIP
-        if (value?.isReactive) {
-          value._parents.push({ prop: prop, receiver });
-        }
         //BLOCK SAME VALUE
-
         if (target._options?.ignoreSameValue && target.data[prop] === value) {
           return true;
         }
@@ -369,6 +375,11 @@ function Reactive(
           target.data[prop] = value;
         }
 
+        //SET REACTIVE PARENTSHIP
+        if (value?.isReactive) {
+          receiver.rebuildRelationships.bind({ target, receiver })();
+        }
+
         //RUN SUBSCRIPTIONS
         target.triggerSubs.bind({ target, receiver })({
           prop,
@@ -380,23 +391,26 @@ function Reactive(
         return true;
       },
       deleteProperty(target, prop) {
+        const receiver = reactiveObjects.get(target._obId);
         if (prop in target.data) {
           if (target.data[prop].isReactive) {
             const delIndex = target.data[prop]._parents.findIndex(
               (childParent) => {
                 return (
-                  childParent.receiver === target._proxy &&
-                  childParent.prop === prop
+                  childParent.receiver === receiver && childParent.prop === prop
                 );
               }
             );
             if (delIndex != null) {
               target.data[prop]._parents.splice(delIndex, 1);
+              if (target.data[prop]._parents.length === 0) {
+                target.data[prop].delete();
+              }
             }
           }
           delete target.data[prop];
           //POST TRIGGER
-          target.triggerSubs.bind({ target: target, receiver: target._proxy })({
+          target.triggerSubs.bind({ target: target, receiver: receiver })({
             prop: prop,
           });
         }
@@ -406,9 +420,12 @@ function Reactive(
   );
   //GIVE ACCESS TO PROXY FROM TARGET
   const newProxyTarget = newProxy._target;
-  newProxyTarget._proxy = newProxy;
+
   //CHAIN REACTIVES
   newProxy.rebuildRelationships();
+
+  reactiveObjects.set(newProxy._obId, newProxy);
+
   return newProxy;
 }
 
@@ -421,5 +438,6 @@ if (typeof module !== "undefined") {
   module.exports = {
     Reactive,
     Reactivate,
+    reactiveObjects,
   };
 }

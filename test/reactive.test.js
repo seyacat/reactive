@@ -1,4 +1,4 @@
-const { Reactive, Reactivate } = require("../reactive.js");
+const { reactiveObjects, Reactive, Reactivate } = require("../reactive.js");
 const chai = require("chai");
 const assert = require("assert");
 
@@ -304,15 +304,10 @@ it("Set inner properties", function () {
   const child = Reactive();
   const games = Reactive({ child });
   assert.equal(child._parents[0].receiver, games);
-  assert.equal(games._proxy, games);
-  assert.equal(games._target._proxy, games);
   games._prefix = "test";
-  games._proxy = null;
   child._parent = null;
   assert.equal(games._prefix, "test");
   assert.equal(games._target._prefix, "test");
-  assert.equal(games._proxy, null);
-  assert.equal(games._target._proxy, null);
   assert.equal(child._parent, null);
   assert.equal(games._target._parent, null);
 });
@@ -408,4 +403,16 @@ it("External mute feature", function () {
   target1.unmute(["trigger"]);
   target1.trigger = "OK";
   assert.equal(target1.ok, "ko");
+});
+
+it("Delete Reactive", function () {
+  const targetN = Reactive({ ok: "ok" }, { prefix: "target1" });
+  const targetM = Reactive({ ok: "ok" }, { prefix: "target1" });
+  targetN.targetM = targetM;
+  assert.equal(reactiveObjects.get(targetN._obId) != null, true);
+  assert.equal(reactiveObjects.get(targetM._obId) != null, true);
+  targetN.delete();
+  delete targetN.targetM;
+  assert.equal(reactiveObjects.get(targetN._obId) == null, true);
+  assert.equal(reactiveObjects.get(targetM._obId) == null, true);
 });
