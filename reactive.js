@@ -373,14 +373,21 @@ function Reactive(
 
         if (
           target.data?.[prop]?._options?.const &&
-          value?._isReactive &&
+          //value?._isReactive &&
           target.data[prop]._isReactive &&
           target.data[prop]._target.data.constructor.name === "Object" &&
-          value?._target?.data.constructor.name === "Object"
+          (value?._target?.data.constructor.name === "Object" ||
+            value?.constructor.name === "Object")
         ) {
           //ON THIS CASE NO SELF CHANGE
-          for ([k, v] of value) {
-            target.data[prop][k] = v;
+          if (value?._isReactive) {
+            for ([k, v] of value) {
+              target.data[prop][k] = v;
+            }
+          } else {
+            for ([k, v] of Object.entries(value)) {
+              target.data[prop][k] = v;
+            }
           }
           return true;
         } else {

@@ -319,12 +319,14 @@ it("Const reactive feature", function () {
   const target1 = Reactive({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 }, { const: true });
   const target2 = Reactive({ 6: 6 });
   const target3 = Reactive({ 2: 2, 4: 4, 6: 6, 8: 8 });
-  const games = Reactive({ target1, target2, target3 });
+  const games = Reactive({ target1, target2, target3 }, { const: true });
   games.target1 = target2;
   games.target3 = target2;
   assert.equal(games.target1, target1);
+  games.target1 = { 9: 9 };
+
   assert.equal(
-    JSON.stringify(target1._),
+    JSON.stringify(games.target1._),
     JSON.stringify({
       1: 1,
       2: 2,
@@ -332,6 +334,7 @@ it("Const reactive feature", function () {
       4: 4,
       5: 5,
       6: 6,
+      9: 9,
     })
   );
   assert.equal(games.target3, target2);
