@@ -3,7 +3,7 @@ const chai = require("chai");
 const assert = require("assert");
 
 it("Reactive Basic", function () {
-  const games = Reactive();
+  const games = Reactive(null, { ignoreSameValue: true });
   //SUBSCRIBE to test property changes
   games.subscribe(
     "test",
@@ -29,6 +29,9 @@ it("Reactive Basic", function () {
   });
   games.test2 = "OK";
   games.test3 = "OK";
+
+  games.test4 = "OK";
+  games.test4 = "OK";
 });
 
 it("Reactive Multiple properties one subscription", function () {
