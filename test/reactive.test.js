@@ -450,5 +450,5 @@ it("Reactive Chain serializable with obId __", function () {
   );
   JSON.stringify(games._);
   JSON.stringify(games.__);
-  console.log(require("util").inspect(games.__, false, null, true));
+  //console.log(require("util").inspect(games.__, false, null, true));
 });

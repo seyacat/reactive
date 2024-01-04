@@ -335,7 +335,15 @@ function Reactive(
               const ret = Object.fromEntries(
                 Object.entries(target.data).map(([key, val]) => {
                   if (val?._isReactive) {
-                    return [key, { _obId: val._obId, value: val.__ }];
+                    return [
+                      key,
+                      {
+                        _obId: val._obId,
+                        _parents: val._parents.map((p) => p.receiver._obId),
+                        _prefix: val._prefix,
+                        value: val.__,
+                      },
+                    ];
                   } else {
                     return [key, val];
                   }
@@ -346,7 +354,12 @@ function Reactive(
             if (target.data.constructor.name === "Array") {
               const ret = target.data.map((val) => {
                 if (val?._isReactive) {
-                  return val.__;
+                  return {
+                    _obId: val._obId,
+                    _parents: val._parents.map((p) => p.receiver._obId),
+                    _prefix: val._prefix,
+                    value: val.__,
+                  };
                 } else {
                   return val;
                 }
