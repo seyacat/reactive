@@ -1,6 +1,7 @@
 const { reactiveObjects, Reactive, Reactivate } = require("../reactive.js");
 const chai = require("chai");
 const assert = require("assert");
+const { inspect } = require("util");
 
 it("Reactive Basic", function () {
   const games = Reactive(null, { ignoreSameValue: true });
@@ -421,4 +422,33 @@ it("Delete Reactive", function () {
   delete targetN.targetM;
   assert.equal(reactiveObjects.get(targetN._obId) == null, true);
   assert.equal(reactiveObjects.get(targetM._obId) == null, true);
+});
+
+it("Reactive Chain serializable with obId __", function () {
+  const games = Reactive(
+    {
+      number: 1,
+      level1: Reactive(
+        [
+          Reactive(
+            {
+              level3: "OK",
+              leve3r: Reactive({ level4: "OK" }),
+              leve3n: Reactive(1),
+            },
+            { prefix: "level2" }
+          ),
+          2,
+          3,
+        ],
+        {
+          prefix: "level1",
+        }
+      ),
+    },
+    { prefix: "base" }
+  );
+  JSON.stringify(games._);
+  JSON.stringify(games.__);
+  console.log(require("util").inspect(games.__, false, null, true));
 });

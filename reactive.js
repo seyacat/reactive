@@ -34,6 +34,7 @@ function Reactive(
           triggerChange: false,
           subscriptionDelay: 0,
           pathValues: false,
+          detailed: false,
         }
       ) {
         let propArr;
@@ -48,14 +49,13 @@ function Reactive(
           if (this.target._subscriptions[prop]) {
             this.target._subscriptions[prop].push({
               func,
-              subscriptionDelay: options.subscriptionDelay,
+              options,
             });
           } else {
             this.target._subscriptions[prop] = [
               {
                 func,
-                subscriptionDelay: options.subscriptionDelay,
-                pathValues: options.pathValues,
+                options,
               },
             ];
           }
@@ -93,7 +93,7 @@ function Reactive(
             ...(this.target._subscriptions[localpath[0]] ?? []),
             ...(this.target._subscriptions["_all"] ?? []),
           ]) {
-            if (sub.pathValues) {
+            if (sub.options.pathValues) {
               valueThoughtLocalPath = this.receiver;
 
               for (const k of localpath) {
@@ -104,7 +104,7 @@ function Reactive(
 
             if (
               this.target._options.subscriptionDelay ||
-              sub.subscriptionDelay
+              sub.options.subscriptionDelay
             ) {
               if (this.target._delayedPayloads[pathString]) {
                 this.target._delayedPayloads[pathString].value = data.value;
@@ -117,7 +117,11 @@ function Reactive(
                   path,
                   pathIds,
                   pathString,
-                  value: value?._isReactive ? value._ : value,
+                  value: value?._isReactive
+                    ? sub.options.detailed
+                      ? value.__
+                      : value._
+                    : value,
                   rawValue: value,
                   oldValue,
                   pathValues,
@@ -131,7 +135,7 @@ function Reactive(
                     delete this.target._delayedPayloads[pathString];
                   }.bind(this),
                   this.target._options.subscriptionDelay ||
-                    sub.subscriptionDelay
+                    sub.options.subscriptionDelay
                 );
               }
             } else {
@@ -141,7 +145,11 @@ function Reactive(
                 path,
                 pathIds,
                 pathString,
-                value: value?._isReactive ? value._ : value,
+                value: value?._isReactive
+                  ? sub.options.detailed
+                    ? value.__
+                    : value._
+                  : value,
                 rawValue: value,
                 oldValue,
                 pathValues,
@@ -315,6 +323,30 @@ function Reactive(
               const ret = target.data.map((val) => {
                 if (val?._isReactive) {
                   return val._;
+                } else {
+                  return val;
+                }
+              });
+              return ret;
+            }
+            return target.data;
+          case "__":
+            if (target.data.constructor.name === "Object") {
+              const ret = Object.fromEntries(
+                Object.entries(target.data).map(([key, val]) => {
+                  if (val?._isReactive) {
+                    return [key, { _obId: val._obId, value: val.__ }];
+                  } else {
+                    return [key, val];
+                  }
+                })
+              );
+              return ret;
+            }
+            if (target.data.constructor.name === "Array") {
+              const ret = target.data.map((val) => {
+                if (val?._isReactive) {
+                  return val.__;
                 } else {
                   return val;
                 }
