@@ -332,34 +332,26 @@ function Reactive(
             return target.data;
           case "__":
             if (target.data.constructor.name === "Object") {
-              const ret = Object.fromEntries(
-                Object.entries(target.data).map(([key, val]) => {
-                  if (val?._isReactive) {
-                    return [
-                      key,
-                      {
-                        _obId: val._obId,
-                        _parents: val._parents.map((p) => p.receiver._obId),
-                        _prefix: val._prefix,
-                        value: val.__,
-                      },
-                    ];
-                  } else {
-                    return [key, val];
-                  }
-                })
-              );
+              const ret = {
+                _obId: target._obId,
+                _parents: target._parents.map((p) => p.receiver._obId),
+                _prefix: target._prefix,
+                value: Object.fromEntries(
+                  Object.entries(target.data).map(([key, val]) => {
+                    if (val?._isReactive) {
+                      return [key, val.__];
+                    } else {
+                      return [key, val];
+                    }
+                  })
+                ),
+              };
               return ret;
             }
             if (target.data.constructor.name === "Array") {
               const ret = target.data.map((val) => {
                 if (val?._isReactive) {
-                  return {
-                    _obId: val._obId,
-                    _parents: val._parents.map((p) => p.receiver._obId),
-                    _prefix: val._prefix,
-                    value: val.__,
-                  };
+                  return val.__;
                 } else {
                   return val;
                 }
