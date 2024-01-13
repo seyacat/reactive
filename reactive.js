@@ -65,7 +65,7 @@ function Reactive(
         }
       },
       triggerSubs: function (data) {
-        let { prop, path, pathIds, value, oldValue } = data;
+        let { prop, path, pathIds, value, oldValue, deleted } = data;
 
         if (!path) {
           path = [prop];
@@ -124,6 +124,7 @@ function Reactive(
                     : value,
                   rawValue: value,
                   oldValue,
+                  deleted,
                   pathValues,
                   prefix: this._prefix,
                 };
@@ -152,6 +153,7 @@ function Reactive(
                   : value,
                 rawValue: value,
                 oldValue,
+                deleted,
                 pathValues,
                 prefix: this._prefix,
               });
@@ -468,6 +470,7 @@ function Reactive(
           //POST TRIGGER
           target.triggerSubs.bind({ target: target, receiver: receiver })({
             prop: prop,
+            deleted: true,
           });
         }
         return true;

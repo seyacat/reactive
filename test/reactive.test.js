@@ -386,6 +386,7 @@ it("Multiparent reactive feature", function () {
   parent2.target1 = target1;
 
   parent1.subscribe(null, (data) => {
+    data.pathString == "target1" ? assert.equal(data.deleted, true) : "";
     assert.equal(data.base._prefix, parent1._prefix);
   });
   parent2.subscribe(null, (data) => {
